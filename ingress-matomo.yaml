@@ -4,7 +4,7 @@ metadata:
   name: matomo
 spec:
   rules:
-    - host: reynier.my.kube.um.edu.ar
+    - host: reynier124-kb.my.kube.um.edu.ar
       http:
         paths:
           - path: /
