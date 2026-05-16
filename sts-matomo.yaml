@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: matomo
+spec:
+  serviceName: matomo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matomo
+  template:
+    metadata:
+      labels:
+        app: matomo
+    spec:
+      initContainers:
+        - name: wait-for-mariadb
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z mariadb 3306; do echo "esperando a mariadb"; sleep 2; done
+      containers:
+        - name: matomo
+          image: matomo:5-apache
+          ports:
+            - containerPort: 80
+          env:
+            - name: MATOMO_DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: matomo-db-config
+                  key: DATABASE_HOST
+            - name: MATOMO_DATABASE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: matomo-db-config
+                  key: MYSQL_USER
+            - name: MATOMO_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: matomo-db-secret
+                  key: MYSQL_PASSWORD
+            - name: MATOMO_DATABASE_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: matomo-db-config
+                  key: MYSQL_DATABASE
+          volumeMounts:
+            - name: matomo-data
+              mountPath: /var/www/html
+  volumeClaimTemplates:
+    - metadata:
+        name: matomo-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
